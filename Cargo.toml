@@ -1,0 +1,17 @@
+[package]
+name = "smell-o-scope"
+description = "Track down and visualize code smell."
+edition = "2024"
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/ncipollo/smell-o-scope"
+version = "0.1.0"
+
+[dependencies]
+
+[lints.clippy]
+cognitive_complexity = "warn"
+too_many_lines = "warn"
+too_many_arguments = "warn"
+
+[dev-dependencies]
