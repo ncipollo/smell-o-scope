@@ -1,9 +1,9 @@
-//! Output generation. `json` is the real `--format json` document; `debug`
-//! is a placeholder until the real HTML document lands (#4-6).
+//! Output generation: `json` renders the `--format json` document, `html`
+//! wraps that same document in a self-contained `--format html` report.
 
 use std::path::Path;
 
-pub mod debug;
+pub mod html;
 pub mod json;
 
 /// A node's display name: its file name, or the full path when it has none

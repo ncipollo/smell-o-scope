@@ -1,0 +1,243 @@
+:root {
+  --surface: #ffffff;
+  --surface-raised: #f5f6f8;
+  --text: #1b1f24;
+  --text-muted: #6b7280;
+  --border: #d8dbe0;
+  --accent: #2563eb;
+  --heat-0: #e5e7eb;
+  --heat-1: #fef3c7;
+  --heat-2: #fcd34d;
+  --heat-3: #fb923c;
+  --heat-4: #ef4444;
+  --heat-0-text: #374151;
+  --heat-4-text: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #14171c;
+    --surface-raised: #1c2027;
+    --text: #e5e7eb;
+    --text-muted: #9aa1ac;
+    --border: #2c313a;
+    --accent: #60a5fa;
+    --heat-0: #262b33;
+    --heat-1: #4b3a13;
+    --heat-2: #92650c;
+    --heat-3: #b1490f;
+    --heat-4: #b91c1c;
+    --heat-0-text: #9aa1ac;
+    --heat-4-text: #ffffff;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 2rem;
+  background: var(--surface);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+#app {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.header {
+  margin-bottom: 1.5rem;
+}
+
+.header__title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 0.25rem;
+}
+
+.header__meta {
+  color: var(--text-muted);
+  margin: 0 0 0.75rem;
+}
+
+.header__totals {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.errors {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-raised);
+  color: var(--text-muted);
+}
+
+.errors__title {
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 0.5rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--heat-0);
+  color: var(--heat-0-text);
+  white-space: nowrap;
+}
+
+.badge[data-level="1"] {
+  background: var(--heat-1);
+  color: var(--heat-0-text);
+}
+
+.badge[data-level="2"] {
+  background: var(--heat-2);
+  color: var(--heat-0-text);
+}
+
+.badge[data-level="3"] {
+  background: var(--heat-3);
+  color: var(--heat-4-text);
+}
+
+.badge[data-level="4"] {
+  background: var(--heat-4);
+  color: var(--heat-4-text);
+}
+
+.badge__label {
+  color: inherit;
+  opacity: 0.75;
+  font-weight: 500;
+}
+
+.tree {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.node {
+  border-top: 1px solid var(--border);
+}
+
+.tree > .node:first-child {
+  border-top: none;
+}
+
+.node__row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  cursor: pointer;
+  background: var(--surface);
+}
+
+.node__row:hover {
+  background: var(--surface-raised);
+}
+
+.node__row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.node__toggle {
+  width: 1rem;
+  flex: none;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.7rem;
+  padding: 0;
+  transform: rotate(0deg);
+  transition: transform 0.1s ease;
+}
+
+.node--expanded > .node__row > .node__toggle {
+  transform: rotate(90deg);
+}
+
+.node__toggle--leaf {
+  visibility: hidden;
+}
+
+.node__icon {
+  flex: none;
+  color: var(--text-muted);
+}
+
+.node__name {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.node__badges {
+  display: flex;
+  gap: 0.35rem;
+  flex: none;
+}
+
+.node__children {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  padding-left: 1.25rem;
+}
+
+.node--collapsed > .node__children,
+.node--collapsed > .file__detail {
+  display: none;
+}
+
+.file__detail {
+  padding: 0.4rem 0.75rem 0.6rem 2.5rem;
+  color: var(--text-muted);
+  background: var(--surface-raised);
+}
+
+.file__detail-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: 28rem;
+  padding: 0.1rem 0;
+}
+
+.file__detail-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file__detail-empty {
+  font-style: italic;
+}
+
+.empty {
+  color: var(--text-muted);
+  padding: 1rem 0;
+}

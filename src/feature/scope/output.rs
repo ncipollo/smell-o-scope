@@ -7,9 +7,9 @@ use clap::ValueEnum;
 /// Written to when `--output` is a file, and no path is given for `--format html`.
 pub const DEFAULT_HTML_OUTPUT: &str = "smell-o-scope.html";
 
-/// The document format to render: `json` is the real document (see
-/// [`crate::render::json`]); `html` still renders the [`crate::render::debug`]
-/// placeholder until issues #4-6 land.
+/// The document format to render: `json` is the raw document (see
+/// [`crate::render::json`]); `html` wraps that same document in a
+/// self-contained report (see [`crate::render::html`]).
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, ValueEnum)]
 pub enum Format {
     Json,

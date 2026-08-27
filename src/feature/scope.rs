@@ -5,7 +5,7 @@ use std::env;
 use std::io;
 use std::path::Path;
 
-use smell::{CheckResult, PathError, TreeAnalysis, analyze_tree, check, resolve_options};
+use smell::{PathError, analyze_tree, check, resolve_options};
 
 pub mod options;
 pub mod output;
@@ -14,7 +14,7 @@ pub mod scan;
 
 use crate::feature::aggregate::{self, Mode};
 use crate::feature::scope::output::Format;
-use crate::render::{debug, json};
+use crate::render::{html, json};
 pub use output::Destination;
 pub use request::Request;
 pub use scan::Scan;
@@ -56,19 +56,19 @@ pub fn run_in(config_dir: &Path, request: &Request) -> io::Result<Outcome> {
         errors: &tree.errors,
     };
     Ok(Outcome {
-        document: document(request.format, &scan, &tree, &results),
+        document: document(request.format, &scan),
         destination: output::destination(request.format, request.output.as_deref()),
         errors: error_messages(&tree.errors),
         analyzed: reports.len(),
     })
 }
 
-/// Renders the document `--format` selects: the real JSON document, or the
-/// [`debug`] placeholder for `html` until issues #4-6 land.
-fn document(format: Format, scan: &Scan, tree: &TreeAnalysis, results: &[CheckResult]) -> String {
+/// Renders the document `--format` selects: the raw JSON document, or that
+/// same document wrapped in a self-contained HTML report.
+fn document(format: Format, scan: &Scan) -> String {
     match format {
         Format::Json => json::render(scan),
-        Format::Html => debug::render(tree, results, scan.tree),
+        Format::Html => html::render(scan),
     }
 }
 
@@ -104,9 +104,12 @@ mod tests {
 
     #[test]
     fn run_excludes_default_ignored_directories() {
+        // Not `!contains("node_modules")`: the echoed `options.exclude` glob
+        // legitimately mentions it. Check the excluded files themselves are
+        // absent from the analyzed tree instead.
         let outcome = run_in(&fixture_path("tree"), &fixture_request()).expect("resolves");
-        assert!(!outcome.document.contains("node_modules"));
-        assert!(!outcome.document.contains(".hidden"));
+        assert!(!outcome.document.contains("ignored.js"));
+        assert!(!outcome.document.contains("ignored.rs"));
     }
 
     #[test]
@@ -129,25 +132,13 @@ mod tests {
     }
 
     #[test]
-    fn run_includes_a_violations_section() {
+    fn run_embeds_violation_counts() {
         let request = Request {
             max_complexity: Some(0),
             ..fixture_request()
         };
         let outcome = run_in(&fixture_path("tree"), &request).expect("resolves");
-        assert!(outcome.document.contains("violations:"));
-    }
-
-    #[test]
-    fn run_preserves_the_existing_debug_sections() {
-        let request = Request {
-            max_complexity: Some(0),
-            ..fixture_request()
-        };
-        let outcome = run_in(&fixture_path("tree"), &request).expect("resolves");
-        assert!(outcome.document.contains("simple.rs"));
-        assert!(outcome.document.contains("checks:"));
-        assert!(outcome.document.contains("violations:"));
+        assert!(outcome.document.contains(r#""violations":{"total""#));
     }
 
     #[test]
@@ -169,13 +160,12 @@ mod tests {
     }
 
     #[test]
-    fn html_format_still_renders_the_debug_document() {
+    fn html_format_renders_a_self_contained_document() {
         let outcome = run_in(&fixture_path("tree"), &fixture_request()).expect("resolves");
-        assert!(
-            outcome
-                .document
-                .contains("smell-o-scope (placeholder render)")
-        );
+        assert!(outcome.document.starts_with("<!doctype html>"));
+        assert!(outcome.document.contains(r#"id="smell-data""#));
+        assert!(!outcome.document.contains("http://"));
+        assert!(!outcome.document.contains("https://"));
     }
 
     #[test]

@@ -4,9 +4,6 @@ Track down and visualize code smell. Recurses through a folder, analyzes it
 with [smell](https://github.com/ncipollo/smell), and renders a heat map of
 code smells per folder and file.
 
-> 🚧 Work in progress — `--format json` is implemented; `--format html` is
-> not yet.
-
 ## Install
 
 ```sh
@@ -25,6 +22,20 @@ smell-o-scope src/ --format json                      # full traversal + aggrega
 Flags will mirror `smell`'s analysis flags (`--include`, `--exclude`,
 `--max-complexity`, `--rule`, ...) and propagate down to it, including its
 `smell.toml` configuration.
+
+## HTML output
+
+`--format html` (the default) renders a single self-contained `.html` file —
+embedded data, CSS, and JS, opening from `file://` with zero network
+requests. No server, no CDN, no sidecar assets to lose track of.
+
+The directory view is a collapsible tree of folders and files: roots start
+expanded, everything below starts collapsed. Each row carries a badge per
+configured measure, heat-scaled by violation count; expanding a file reveals
+its offender detail. With no `--max-*` limit configured (and none in
+`smell.toml`), there's nothing to flag — the tree still renders, just without
+violation badges. The color theme follows the OS light/dark setting
+automatically.
 
 ## JSON output
 
