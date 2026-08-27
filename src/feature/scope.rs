@@ -11,6 +11,7 @@ pub mod options;
 pub mod output;
 pub mod request;
 
+use crate::feature::aggregate::{self, Mode};
 use crate::render::debug;
 pub use output::Destination;
 pub use request::Request;
@@ -43,8 +44,9 @@ pub fn run_in(config_dir: &Path, request: &Request) -> io::Result<Outcome> {
     let tree = analyze_tree(&request.paths, &analysis_options);
     let reports = tree.reports();
     let results = check(&reports, &analysis_options);
+    let aggregated = aggregate::aggregate(Mode::default(), &tree, &results);
     Ok(Outcome {
-        document: debug::render(&tree, &results),
+        document: debug::render(&tree, &results, &aggregated),
         destination: output::destination(request.format, request.output.as_deref()),
         errors: error_messages(&tree.errors),
         analyzed: reports.len(),
@@ -105,6 +107,28 @@ mod tests {
         };
         let outcome = run_in(&fixture_path("tree"), &request).expect("resolves");
         assert!(outcome.document.contains("complexity"));
+    }
+
+    #[test]
+    fn run_includes_a_violations_section() {
+        let request = Request {
+            max_complexity: Some(0),
+            ..fixture_request()
+        };
+        let outcome = run_in(&fixture_path("tree"), &request).expect("resolves");
+        assert!(outcome.document.contains("violations:"));
+    }
+
+    #[test]
+    fn run_preserves_the_existing_debug_sections() {
+        let request = Request {
+            max_complexity: Some(0),
+            ..fixture_request()
+        };
+        let outcome = run_in(&fixture_path("tree"), &request).expect("resolves");
+        assert!(outcome.document.contains("simple.rs"));
+        assert!(outcome.document.contains("checks:"));
+        assert!(outcome.document.contains("violations:"));
     }
 
     #[test]

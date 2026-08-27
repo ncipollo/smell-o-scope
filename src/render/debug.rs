@@ -1,11 +1,16 @@
-//! Placeholder rendering of a [`TreeAnalysis`] and its [`CheckResult`]s.
-//! Stands in for the real JSON/HTML documents, which land in a later issue;
-//! `--format` currently only picks the destination (see
-//! [`crate::feature::scope::output`]), not the document shape.
+//! Placeholder rendering of a [`TreeAnalysis`], its [`CheckResult`]s, and
+//! their [`AggregatedTree`]. Stands in for the real JSON/HTML documents,
+//! which land in a later issue; `--format` currently only picks the
+//! destination (see [`crate::feature::scope::output`]), not the document
+//! shape.
 
 use smell::{CheckFailure, CheckResult, FileNode, FileReport, Subject, TreeAnalysis, TreeNode};
 
-pub fn render(tree: &TreeAnalysis, results: &[CheckResult]) -> String {
+use crate::feature::aggregate::AggregatedTree;
+
+pub mod violations;
+
+pub fn render(tree: &TreeAnalysis, results: &[CheckResult], aggregated: &AggregatedTree) -> String {
     let mut out = String::from("smell-o-scope (placeholder render)\n\n");
     if tree.roots.is_empty() {
         out.push_str("no files analyzed\n\n");
@@ -14,6 +19,8 @@ pub fn render(tree: &TreeAnalysis, results: &[CheckResult]) -> String {
         out.push('\n');
     }
     out.push_str(&render_checks(results));
+    out.push('\n');
+    out.push_str(&violations::render(aggregated));
     out
 }
 
@@ -100,52 +107,23 @@ fn render_failure(failure: &CheckFailure) -> String {
     }
 }
 
-fn indent(depth: usize) -> String {
+pub(super) fn indent(depth: usize) -> String {
     "  ".repeat(depth)
 }
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
-
-    use smell::code::{FileComplexity, FunctionComplexity};
-    use smell::{DirectoryNode, Measure, Offender, PathError};
+    use smell::Measure;
 
     use super::*;
+    use crate::testing::{
+        check_result, directory_node, entries_failure, file_failure, file_node, file_report, tree,
+    };
 
-    fn file_report(path: &str, lines: usize, complexity: usize) -> FileReport {
-        FileReport {
-            path: PathBuf::from(path),
-            lines,
-            complexity: FileComplexity {
-                functions: vec![FunctionComplexity {
-                    name: "top".to_string(),
-                    complexity,
-                }],
-                types: vec![],
-            },
-        }
-    }
-
-    fn file_node(path: &str, report: Option<FileReport>) -> TreeNode {
-        TreeNode::File(FileNode {
-            path: PathBuf::from(path),
-            report,
-        })
-    }
-
-    fn directory_node(path: &str, children: Vec<TreeNode>) -> TreeNode {
-        TreeNode::Directory(DirectoryNode {
-            path: PathBuf::from(path),
-            children,
-        })
-    }
-
-    fn tree(roots: Vec<TreeNode>) -> TreeAnalysis {
-        TreeAnalysis {
-            roots,
-            errors: Vec::<PathError>::new(),
-        }
+    /// These tests only exercise the tree/checks sections; the violations
+    /// section has its own tests in `violations::tests`.
+    fn no_violations() -> AggregatedTree {
+        AggregatedTree::default()
     }
 
     #[test]
@@ -157,7 +135,7 @@ mod tests {
                 Some(file_report("src/lib.rs", 1, 1)),
             )],
         )]);
-        let text = render(&tree, &[]);
+        let text = render(&tree, &[], &no_violations());
         assert!(text.contains("src/\n"));
         assert!(text.contains("lib.rs"));
     }
@@ -171,7 +149,7 @@ mod tests {
                 Some(file_report("src/lib.rs", 1, 1)),
             )],
         )]);
-        let text = render(&tree, &[]);
+        let text = render(&tree, &[], &no_violations());
         let directory_line = text.lines().find(|line| line.contains("src/")).unwrap();
         let file_line = text.lines().find(|line| line.contains("lib.rs")).unwrap();
         let directory_indent = directory_line.len() - directory_line.trim_start().len();
@@ -182,7 +160,7 @@ mod tests {
     #[test]
     fn render_marks_files_without_a_report() {
         let tree = tree(vec![file_node("src/lib.rs", None)]);
-        let text = render(&tree, &[]);
+        let text = render(&tree, &[], &no_violations());
         assert!(text.contains("(no report)"));
     }
 
@@ -192,7 +170,7 @@ mod tests {
             "src/lib.rs",
             Some(file_report("src/lib.rs", 42, 3)),
         )]);
-        let text = render(&tree, &[]);
+        let text = render(&tree, &[], &no_violations());
         assert!(text.contains("lines 42"));
         assert!(text.contains("total 3"));
         assert!(text.contains("max 3"));
@@ -201,23 +179,17 @@ mod tests {
     }
 
     fn complexity_result(failures: Vec<CheckFailure>) -> CheckResult {
-        CheckResult {
-            measure: Measure::Complexity,
-            limit: 10,
-            failures,
-        }
+        check_result(Measure::Complexity, 10, failures)
     }
 
     #[test]
     fn render_summarizes_failing_checks() {
-        let failure = CheckFailure {
-            path: PathBuf::from("src/a.rs"),
-            subject: Subject::Entries(vec![Offender {
-                name: "Shape.area".to_string(),
-                value: 12,
-            }]),
-        };
-        let text = render(&tree(vec![]), &[complexity_result(vec![failure])]);
+        let failure = entries_failure("src/a.rs", &[("Shape.area", 12)]);
+        let text = render(
+            &tree(vec![]),
+            &[complexity_result(vec![failure])],
+            &no_violations(),
+        );
         assert!(text.contains("✗ complexity (limit 10): 1 file(s)"));
         assert!(text.contains("src/a.rs"));
         assert!(text.contains("Shape.area  12"));
@@ -225,35 +197,32 @@ mod tests {
 
     #[test]
     fn render_omits_passing_checks() {
-        let text = render(&tree(vec![]), &[complexity_result(vec![])]);
+        let text = render(
+            &tree(vec![]),
+            &[complexity_result(vec![])],
+            &no_violations(),
+        );
         assert!(text.contains("checks: all passed"));
         assert!(!text.contains("✗"));
     }
 
     #[test]
     fn render_notes_when_no_checks_are_configured() {
-        let text = render(&tree(vec![]), &[]);
+        let text = render(&tree(vec![]), &[], &no_violations());
         assert!(text.contains("checks: none configured"));
     }
 
     #[test]
     fn render_notes_an_empty_tree() {
-        let text = render(&tree(vec![]), &[]);
+        let text = render(&tree(vec![]), &[], &no_violations());
         assert!(text.contains("no files analyzed"));
     }
 
     #[test]
     fn render_renders_a_file_subject_as_a_flat_value() {
-        let failure = CheckFailure {
-            path: PathBuf::from("src/a.rs"),
-            subject: Subject::File(150),
-        };
-        let result = CheckResult {
-            measure: Measure::Lines,
-            limit: 100,
-            failures: vec![failure],
-        };
-        let text = render(&tree(vec![]), &[result]);
+        let failure = file_failure("src/a.rs", 150);
+        let result = check_result(Measure::Lines, 100, vec![failure]);
+        let text = render(&tree(vec![]), &[result], &no_violations());
         assert!(text.contains("src/a.rs  150"));
     }
 }
