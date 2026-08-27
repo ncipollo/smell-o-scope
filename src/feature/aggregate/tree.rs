@@ -8,6 +8,7 @@
 //! JSON/HTML output builds on — from ever deriving `PartialEq` or
 //! `Serialize`.
 
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use smell::Measure;
@@ -92,6 +93,38 @@ impl Detail {
             Detail::Whole(_) => 1,
         }
     }
+
+    /// The [`Shape`] this detail was actually built with. Lets callers
+    /// assert a `Finding`'s variant matches what [`shape`] predicts for its
+    /// measure.
+    pub fn shape(&self) -> Shape {
+        match self {
+            Detail::Entries(_) => Shape::Entries,
+            Detail::Whole(_) => Shape::Whole,
+        }
+    }
+}
+
+/// Whether a measure's failures name entries inside a file (functions for
+/// `complexity`, types for `methods`) or describe the file as a whole
+/// (`lines`, `declarations`). Fixed per measure by `smell::check`, so a file
+/// with *no* finding for a configured measure still knows the empty shape
+/// its detail would have taken — an empty list for `Entries`, `None` for
+/// `Whole`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Shape {
+    Entries,
+    Whole,
+}
+
+/// The exhaustive match, mirroring [`slot`], so a fifth `smell` measure
+/// fails this crate to compile rather than silently getting the wrong
+/// detail shape.
+pub fn shape(measure: Measure) -> Shape {
+    match measure {
+        Measure::Complexity | Measure::Methods => Shape::Entries,
+        Measure::Lines | Measure::Declarations => Shape::Whole,
+    }
 }
 
 /// One measure's failure detail for a single file.
@@ -108,6 +141,36 @@ pub struct Finding {
 pub struct AggregatedTree {
     pub measures: Vec<MeasureLimit>,
     pub roots: Vec<AggregatedNode>,
+}
+
+impl AggregatedTree {
+    /// The whole run's counts, deduped by path so a file under two
+    /// overlapping roots (see `crate::feature::aggregate`'s module doc)
+    /// contributes once rather than once per root it appears under.
+    /// Directory counts are pure sums of their files, so deduped files are
+    /// the correct basis for a grand total.
+    pub fn totals(&self) -> Counts {
+        let mut by_path: HashMap<&Path, Counts> = HashMap::new();
+        collect_file_counts(&self.roots, &mut by_path);
+        let mut totals = Counts::default();
+        for counts in by_path.into_values() {
+            totals.merge(counts);
+        }
+        totals
+    }
+}
+
+fn collect_file_counts<'a>(nodes: &'a [AggregatedNode], by_path: &mut HashMap<&'a Path, Counts>) {
+    for node in nodes {
+        match node {
+            AggregatedNode::Directory(directory) => {
+                collect_file_counts(&directory.children, by_path);
+            }
+            AggregatedNode::File(file) => {
+                by_path.insert(&file.path, file.counts);
+            }
+        }
+    }
 }
 
 /// Mirrors `smell::TreeNode`: a directory or a file, each carrying its own
@@ -128,6 +191,11 @@ pub struct AggregatedDirectory {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AggregatedFile {
     pub path: PathBuf,
+    /// The file's line count, or `None` when it matched traversal filters
+    /// but produced no report (see `smell::FileNode::report`) — the only
+    /// signal distinguishing an empty `findings` meaning "never checked"
+    /// from "checked and passed".
+    pub lines: Option<usize>,
     pub counts: Counts,
     pub findings: Vec<Finding>,
 }
@@ -213,6 +281,7 @@ mod tests {
 
         let file = AggregatedNode::File(AggregatedFile {
             path: PathBuf::from("src/a.rs"),
+            lines: Some(1),
             counts,
             findings: vec![],
         });
@@ -226,5 +295,67 @@ mod tests {
         });
         assert_eq!(directory.path(), Path::new("src"));
         assert_eq!(directory.counts().total(), 1);
+    }
+
+    #[test]
+    fn shape_classifies_every_measure() {
+        assert_eq!(shape(Measure::Complexity), Shape::Entries);
+        assert_eq!(shape(Measure::Methods), Shape::Entries);
+        assert_eq!(shape(Measure::Lines), Shape::Whole);
+        assert_eq!(shape(Measure::Declarations), Shape::Whole);
+    }
+
+    #[test]
+    fn detail_shape_matches_its_variant() {
+        assert_eq!(Detail::Entries(vec![]).shape(), Shape::Entries);
+        assert_eq!(Detail::Whole(1).shape(), Shape::Whole);
+    }
+
+    #[test]
+    fn totals_sums_every_file_under_a_root() {
+        use crate::testing::{aggregated_directory, aggregated_file, counts as counts_of};
+
+        let tree = AggregatedTree {
+            measures: vec![],
+            roots: vec![aggregated_directory(
+                "src",
+                Counts::default(),
+                vec![
+                    aggregated_file(
+                        "src/a.rs",
+                        Some(1),
+                        counts_of(&[(Measure::Complexity, 1)]),
+                        vec![],
+                    ),
+                    aggregated_file(
+                        "src/b.rs",
+                        Some(1),
+                        counts_of(&[(Measure::Complexity, 2)]),
+                        vec![],
+                    ),
+                ],
+            )],
+        };
+        assert_eq!(tree.totals().get(Measure::Complexity), 3);
+    }
+
+    #[test]
+    fn totals_counts_a_file_shared_by_two_roots_once() {
+        use crate::testing::{aggregated_file, counts as counts_of};
+
+        let shared = counts_of(&[(Measure::Complexity, 5)]);
+        let tree = AggregatedTree {
+            measures: vec![],
+            roots: vec![
+                aggregated_file("src/a.rs", Some(1), shared, vec![]),
+                aggregated_file("src/a.rs", Some(1), shared, vec![]),
+            ],
+        };
+        assert_eq!(tree.totals().get(Measure::Complexity), 5);
+    }
+
+    #[test]
+    fn totals_of_an_empty_tree_is_zero() {
+        assert_eq!(AggregatedTree::default().totals().total(), 0);
     }
 }

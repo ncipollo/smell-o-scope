@@ -5,10 +5,9 @@
 //!
 //! Note on overlapping roots: `smell::TreeAnalysis` deliberately preserves
 //! provenance, so the same file can appear under two different roots and
-//! be counted in both. That's correct per-root behavior, and there's no
-//! grand-total field today, so nothing double-counts yet — but a future
-//! whole-run total needs to dedup by path the way `TreeAnalysis::reports`
-//! does.
+//! be counted in both. That's correct per-root behavior; the whole-run
+//! total, [`tree::AggregatedTree::totals`], dedups by path the way
+//! `TreeAnalysis::reports` does, so an overlap doesn't inflate it.
 
 use smell::{CheckResult, TreeAnalysis};
 
@@ -33,6 +32,16 @@ pub trait Aggregator {
 pub enum Mode {
     #[default]
     Violations,
+}
+
+impl Mode {
+    /// A stable, lowercase identifier safe to store or match on, mirroring
+    /// `smell::Measure::name()`.
+    pub fn name(&self) -> &'static str {
+        match self {
+            Mode::Violations => "violations",
+        }
+    }
 }
 
 /// Runs `tree`/`checks` through the aggregator `mode` selects.
@@ -74,6 +83,11 @@ mod tests {
     #[test]
     fn mode_defaults_to_violations() {
         assert_eq!(Mode::default(), Mode::Violations);
+    }
+
+    #[test]
+    fn mode_name_is_violations() {
+        assert_eq!(Mode::Violations.name(), "violations");
     }
 
     #[test]

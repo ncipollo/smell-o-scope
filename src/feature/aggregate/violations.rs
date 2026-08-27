@@ -55,6 +55,7 @@ fn aggregate_file(file: &FileNode, index: &FailureIndex) -> AggregatedNode {
     let findings = index.findings(&file.path).to_vec();
     AggregatedNode::File(AggregatedFile {
         path: file.path.clone(),
+        lines: file.report.as_ref().map(|report| report.lines),
         counts: count(&findings),
         findings,
     })
@@ -259,5 +260,20 @@ mod tests {
         let aggregated = aggregate(&[], vec![file_node("a.rs", None)]);
         assert!(aggregated.measures.is_empty());
         assert_eq!(expect_file(&aggregated.roots[0]).counts.total(), 0);
+    }
+
+    #[test]
+    fn violations_records_the_line_count_from_the_report() {
+        let aggregated = aggregate(
+            &[],
+            vec![file_node("a.rs", Some(file_report("a.rs", 42, 1)))],
+        );
+        assert_eq!(expect_file(&aggregated.roots[0]).lines, Some(42));
+    }
+
+    #[test]
+    fn violations_leaves_lines_unknown_without_a_report() {
+        let aggregated = aggregate(&[], vec![file_node("a.rs", None)]);
+        assert_eq!(expect_file(&aggregated.roots[0]).lines, None);
     }
 }

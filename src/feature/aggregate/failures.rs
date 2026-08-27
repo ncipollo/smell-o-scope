@@ -156,4 +156,20 @@ mod tests {
         let checks = vec![check_result(Measure::Complexity, 10, vec![])];
         assert_eq!(limits(&checks).len(), 1);
     }
+
+    /// Guards against `smell` ever changing a measure's subject kind
+    /// without `tree::shape` following: every `Detail` this module builds
+    /// must have the shape `tree::shape` predicts for its measure.
+    #[test]
+    fn finding_shape_matches_its_measure() {
+        use crate::feature::aggregate::tree;
+
+        let entries = detail(&Subject::Entries(vec![]));
+        assert_eq!(entries.shape(), tree::shape(Measure::Complexity));
+        assert_eq!(entries.shape(), tree::shape(Measure::Methods));
+
+        let whole = detail(&Subject::File(0));
+        assert_eq!(whole.shape(), tree::shape(Measure::Lines));
+        assert_eq!(whole.shape(), tree::shape(Measure::Declarations));
+    }
 }

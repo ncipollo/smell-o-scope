@@ -1,4 +1,4 @@
-use smell::Overrides;
+use smell::{AnalysisOptions, Overrides};
 
 use crate::feature::scope::request::Request;
 
@@ -44,6 +44,48 @@ fn excludes(user: &[String]) -> Vec<String> {
             .collect()
     } else {
         user.to_vec()
+    }
+}
+
+/// What a run was configured with, for echoing back in a rendered document.
+///
+/// `rule`/`include`/`exclude`/`branches`/`implements` come from `Overrides`
+/// (what was requested, with our default excludes applied) rather than the
+/// resolved `AnalysisOptions`: `smell` compiles those into opaque globs, so
+/// a `smell.toml` rule's own patterns can't be recovered here and won't
+/// appear. The `max_*` limits are the opposite: they come from the resolved
+/// `AnalysisOptions` rather than `Overrides`, since a limit set by a
+/// `smell.toml` rule (rather than a flag) would otherwise echo as `null`
+/// while the run's `measures` list shows it as configured.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Settings {
+    pub rule: String,
+    pub include: Vec<String>,
+    pub exclude: Vec<String>,
+    pub branches: Vec<String>,
+    pub implements: Vec<String>,
+    pub max_complexity: Option<usize>,
+    pub max_methods: Option<usize>,
+    pub max_lines: Option<usize>,
+    pub max_declarations: Option<usize>,
+}
+
+/// Builds the [`Settings`] echo from the `Overrides` a run sent to `smell`
+/// and the `AnalysisOptions` it resolved to.
+pub fn settings(overrides: &Overrides, options: &AnalysisOptions) -> Settings {
+    Settings {
+        rule: overrides
+            .rule
+            .clone()
+            .unwrap_or_else(|| "default".to_string()),
+        include: overrides.include.clone(),
+        exclude: overrides.exclude.clone(),
+        branches: overrides.branches.clone(),
+        implements: overrides.implements.clone(),
+        max_complexity: options.max_complexity,
+        max_methods: options.max_methods,
+        max_lines: options.max_lines,
+        max_declarations: options.max_declarations,
     }
 }
 
@@ -149,5 +191,62 @@ mod tests {
         for pattern in DEFAULT_EXCLUDES {
             assert!(pattern.ends_with("/**"), "{pattern} lacks subtree suffix");
         }
+    }
+
+    #[test]
+    fn settings_defaults_the_rule_name() {
+        let overrides = overrides(&Request::default());
+        let settings = settings(&overrides, &AnalysisOptions::default());
+        assert_eq!(settings.rule, "default");
+    }
+
+    #[test]
+    fn settings_echoes_the_requested_rule() {
+        let overrides = overrides(&request());
+        let settings = settings(&overrides, &AnalysisOptions::default());
+        assert_eq!(settings.rule, "swift");
+    }
+
+    #[test]
+    fn settings_echoes_the_default_excludes() {
+        let overrides = overrides(&Request::default());
+        let settings = settings(&overrides, &AnalysisOptions::default());
+        let expected: Vec<String> = DEFAULT_EXCLUDES
+            .iter()
+            .map(|glob| glob.to_string())
+            .collect();
+        assert_eq!(settings.exclude, expected);
+    }
+
+    #[test]
+    fn settings_echoes_user_excludes() {
+        let overrides = overrides(&request());
+        let settings = settings(&overrides, &AnalysisOptions::default());
+        assert_eq!(settings.exclude, vec!["custom/**".to_string()]);
+    }
+
+    #[test]
+    fn settings_echoes_branches_and_implements() {
+        let overrides = overrides(&request());
+        let settings = settings(&overrides, &AnalysisOptions::default());
+        assert_eq!(settings.branches, vec!["switch".to_string()]);
+        assert_eq!(settings.implements, vec!["Describe".to_string()]);
+    }
+
+    #[test]
+    fn settings_takes_limits_from_the_resolved_options_not_the_overrides() {
+        let overrides = overrides(&request());
+        let options = AnalysisOptions {
+            max_complexity: Some(1),
+            max_methods: Some(2),
+            max_lines: Some(3),
+            max_declarations: None,
+            ..AnalysisOptions::default()
+        };
+        let settings = settings(&overrides, &options);
+        assert_eq!(settings.max_complexity, Some(1));
+        assert_eq!(settings.max_methods, Some(2));
+        assert_eq!(settings.max_lines, Some(3));
+        assert_eq!(settings.max_declarations, None);
     }
 }

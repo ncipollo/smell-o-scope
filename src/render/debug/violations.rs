@@ -137,6 +137,7 @@ mod tests {
     fn render_lists_counts_per_node() {
         let file = AggregatedNode::File(AggregatedFile {
             path: PathBuf::from("src/a.rs"),
+            lines: None,
             counts: counts(&[(Measure::Complexity, 2)]),
             findings: vec![],
         });
@@ -152,6 +153,7 @@ mod tests {
     fn render_indents_children_below_directories() {
         let file = AggregatedNode::File(AggregatedFile {
             path: PathBuf::from("src/a.rs"),
+            lines: None,
             counts: counts(&[(Measure::Complexity, 1)]),
             findings: vec![],
         });
@@ -176,6 +178,7 @@ mod tests {
     fn render_lists_offenders_under_a_file() {
         let file = AggregatedNode::File(AggregatedFile {
             path: PathBuf::from("src/a.rs"),
+            lines: None,
             counts: counts(&[(Measure::Complexity, 1)]),
             findings: vec![Finding {
                 measure: Measure::Complexity,
@@ -197,6 +200,7 @@ mod tests {
     fn render_omits_unconfigured_measures() {
         let file = AggregatedNode::File(AggregatedFile {
             path: PathBuf::from("src/a.rs"),
+            lines: None,
             counts: counts(&[(Measure::Complexity, 1)]),
             findings: vec![],
         });
