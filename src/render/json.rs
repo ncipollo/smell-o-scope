@@ -1,7 +1,7 @@
 //! `--format json` rendering: the full document — traversal structure,
 //! aggregation, and per-file detail — everything a consumer needs to
 //! render results without re-running analysis. This is also the payload
-//! the HTML views (#4-6) will embed. Mirrors `smell`'s own
+//! [`crate::render::html`] embeds. Mirrors `smell`'s own
 //! `cli::complexity::json`: DTOs built from the domain types rather than
 //! derived on them, since `feature::aggregate`'s types stay serde-free.
 
@@ -25,6 +25,12 @@ const VERSION: u32 = 1;
 pub fn render(scan: &Scan) -> String {
     serde_json::to_string_pretty(&Document::new(scan))
         .expect("DTOs are always representable as JSON")
+}
+
+/// Renders `scan` as a compact JSON document, for embedding in the HTML
+/// document (see [`crate::render::html`]) where whitespace is only weight.
+pub fn render_compact(scan: &Scan) -> String {
+    serde_json::to_string(&Document::new(scan)).expect("DTOs are always representable as JSON")
 }
 
 #[derive(Serialize)]
@@ -193,5 +199,27 @@ mod tests {
         };
         let rendered = render(&scan(&tree, &[]));
         assert!(rendered.contains('\n'));
+    }
+
+    #[test]
+    fn render_compact_has_no_newlines() {
+        let tree = AggregatedTree {
+            measures: measure_limits(&[(Measure::Complexity, 10)]),
+            roots: vec![aggregated_file("a.rs", None, counts(&[]), vec![])],
+        };
+        let rendered = render_compact(&scan(&tree, &[]));
+        assert!(!rendered.contains('\n'));
+    }
+
+    #[test]
+    fn render_compact_parses_to_the_same_value_as_render() {
+        let tree = AggregatedTree {
+            measures: measure_limits(&[(Measure::Complexity, 10)]),
+            roots: vec![aggregated_file("a.rs", Some(1), counts(&[]), vec![])],
+        };
+        let pretty: Value = serde_json::from_str(&render(&scan(&tree, &[]))).expect("valid JSON");
+        let compact: Value =
+            serde_json::from_str(&render_compact(&scan(&tree, &[]))).expect("valid JSON");
+        assert_eq!(pretty, compact);
     }
 }
