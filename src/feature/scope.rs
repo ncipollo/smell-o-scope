@@ -1,20 +1,23 @@
-//! Orchestrates a single scan: resolve options, run `smell`, and build the
-//! placeholder document ready for [`crate::cli::router`] to emit.
+//! Orchestrates a single scan: resolve options, run `smell`, and render the
+//! document ready for [`crate::cli::router`] to emit.
 
 use std::env;
 use std::io;
 use std::path::Path;
 
-use smell::{PathError, analyze_tree, check, resolve_options};
+use smell::{CheckResult, PathError, TreeAnalysis, analyze_tree, check, resolve_options};
 
 pub mod options;
 pub mod output;
 pub mod request;
+pub mod scan;
 
 use crate::feature::aggregate::{self, Mode};
-use crate::render::debug;
+use crate::feature::scope::output::Format;
+use crate::render::{debug, json};
 pub use output::Destination;
 pub use request::Request;
+pub use scan::Scan;
 
 /// The result of running a scan: the rendered document, where it should go,
 /// non-fatal path errors to report, and how many files were analyzed.
@@ -44,13 +47,29 @@ pub fn run_in(config_dir: &Path, request: &Request) -> io::Result<Outcome> {
     let tree = analyze_tree(&request.paths, &analysis_options);
     let reports = tree.reports();
     let results = check(&reports, &analysis_options);
-    let aggregated = aggregate::aggregate(Mode::default(), &tree, &results);
+    let mode = Mode::default();
+    let aggregated = aggregate::aggregate(mode, &tree, &results);
+    let scan = Scan {
+        mode,
+        settings: options::settings(&overrides, &analysis_options),
+        tree: &aggregated,
+        errors: &tree.errors,
+    };
     Ok(Outcome {
-        document: debug::render(&tree, &results, &aggregated),
+        document: document(request.format, &scan, &tree, &results),
         destination: output::destination(request.format, request.output.as_deref()),
         errors: error_messages(&tree.errors),
         analyzed: reports.len(),
     })
+}
+
+/// Renders the document `--format` selects: the real JSON document, or the
+/// [`debug`] placeholder for `html` until issues #4-6 land.
+fn document(format: Format, scan: &Scan, tree: &TreeAnalysis, results: &[CheckResult]) -> String {
+    match format {
+        Format::Json => json::render(scan),
+        Format::Html => debug::render(tree, results, scan.tree),
+    }
 }
 
 fn error_messages(errors: &[PathError]) -> Vec<String> {
@@ -147,5 +166,69 @@ mod tests {
             ..fixture_request()
         };
         assert!(run_in(&fixture_path("tree"), &request).is_err());
+    }
+
+    #[test]
+    fn html_format_still_renders_the_debug_document() {
+        let outcome = run_in(&fixture_path("tree"), &fixture_request()).expect("resolves");
+        assert!(
+            outcome
+                .document
+                .contains("smell-o-scope (placeholder render)")
+        );
+    }
+
+    #[test]
+    fn json_format_produces_a_parsable_document() {
+        let request = Request {
+            format: crate::feature::scope::output::Format::Json,
+            ..fixture_request()
+        };
+        let outcome = run_in(&fixture_path("tree"), &request).expect("resolves");
+        let document: serde_json::Value =
+            serde_json::from_str(&outcome.document).expect("valid JSON");
+        assert_eq!(document["version"], 1);
+    }
+
+    #[test]
+    fn json_format_lists_only_configured_measures() {
+        let request = Request {
+            format: crate::feature::scope::output::Format::Json,
+            max_complexity: Some(1),
+            ..fixture_request()
+        };
+        let outcome = run_in(&fixture_path("tree"), &request).expect("resolves");
+        let document: serde_json::Value =
+            serde_json::from_str(&outcome.document).expect("valid JSON");
+        assert_eq!(document["measures"], serde_json::json!(["complexity"]));
+    }
+
+    #[test]
+    fn json_format_reports_unreadable_paths_in_errors() {
+        let mut request = Request {
+            format: crate::feature::scope::output::Format::Json,
+            ..fixture_request()
+        };
+        request.paths.push(fixture_path("does-not-exist"));
+        let outcome = run_in(&fixture_path("tree"), &request).expect("resolves");
+        let document: serde_json::Value =
+            serde_json::from_str(&outcome.document).expect("valid JSON");
+        assert_eq!(document["errors"].as_array().expect("array").len(), 1);
+    }
+
+    #[test]
+    fn json_document_matches_the_snapshot() {
+        let request = Request {
+            format: crate::feature::scope::output::Format::Json,
+            max_complexity: Some(1),
+            max_methods: Some(1),
+            max_lines: Some(5),
+            max_declarations: Some(1),
+            ..fixture_request()
+        };
+        let root = fixture_path("tree");
+        let outcome = run_in(&root, &request).expect("resolves");
+        let normalized = crate::testing::normalize_document(&outcome.document, &root);
+        insta::assert_snapshot!(normalized);
     }
 }

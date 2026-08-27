@@ -7,10 +7,9 @@ use clap::ValueEnum;
 /// Written to when `--output` is a file, and no path is given for `--format html`.
 pub const DEFAULT_HTML_OUTPUT: &str = "smell-o-scope.html";
 
-/// The document format to render. Rendering is currently a placeholder (see
-/// [`crate::render::debug`]) regardless of which variant is chosen — this
-/// only decides where the document goes until `render::json`/`render::html`
-/// land.
+/// The document format to render: `json` is the real document (see
+/// [`crate::render::json`]); `html` still renders the [`crate::render::debug`]
+/// placeholder until issues #4-6 land.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, ValueEnum)]
 pub enum Format {
     Json,
@@ -48,7 +47,7 @@ pub fn emit(destination: &Destination, document: &str) -> io::Result<()> {
             Ok(())
         }
         Destination::File(path) => {
-            fs::write(path, document)?;
+            fs::write(path, format!("{document}\n"))?;
             eprintln!("wrote {}", path.display());
             Ok(())
         }

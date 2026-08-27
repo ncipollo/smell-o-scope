@@ -1,0 +1,141 @@
+---
+source: src/feature/scope.rs
+assertion_line: 233
+expression: normalized
+---
+{
+  "version": 1,
+  "tool": {
+    "name": "smell-o-scope",
+    "version": "<version>"
+  },
+  "aggregation": "violations",
+  "options": {
+    "rule": "default",
+    "include": [],
+    "exclude": [
+      "**/.*/**",
+      "**/node_modules/**",
+      "**/target/**",
+      "**/build/**",
+      "**/dist/**"
+    ],
+    "branches": [],
+    "implements": [],
+    "maxComplexity": 1,
+    "maxMethods": 1,
+    "maxLines": 5,
+    "maxDeclarations": 1
+  },
+  "measures": [
+    "complexity",
+    "methods",
+    "lines",
+    "declarations"
+  ],
+  "totals": {
+    "total": 6,
+    "complexity": 2,
+    "methods": 1,
+    "lines": 2,
+    "declarations": 1
+  },
+  "roots": [
+    {
+      "name": "tree",
+      "path": "<fixture-root>",
+      "kind": "directory",
+      "violations": {
+        "total": 6,
+        "complexity": 2,
+        "methods": 1,
+        "lines": 2,
+        "declarations": 1
+      },
+      "children": [
+        {
+          "name": "src",
+          "path": "<fixture-root>/src",
+          "kind": "directory",
+          "violations": {
+            "total": 6,
+            "complexity": 2,
+            "methods": 1,
+            "lines": 2,
+            "declarations": 1
+          },
+          "children": [
+            {
+              "name": "nested",
+              "path": "<fixture-root>/src/nested",
+              "kind": "directory",
+              "violations": {
+                "total": 3,
+                "complexity": 1,
+                "methods": 1,
+                "lines": 1,
+                "declarations": 0
+              },
+              "children": [
+                {
+                  "name": "types.rs",
+                  "path": "<fixture-root>/src/nested/types.rs",
+                  "kind": "file",
+                  "lines": 17,
+                  "violations": {
+                    "total": 3,
+                    "complexity": 1,
+                    "methods": 1,
+                    "lines": 1,
+                    "declarations": 0
+                  },
+                  "detail": {
+                    "complexity": [
+                      {
+                        "name": "Shape.label",
+                        "value": 4
+                      }
+                    ],
+                    "methods": [
+                      {
+                        "name": "Shape",
+                        "value": 2
+                      }
+                    ],
+                    "lines": 17,
+                    "declarations": null
+                  }
+                }
+              ]
+            },
+            {
+              "name": "simple.rs",
+              "path": "<fixture-root>/src/simple.rs",
+              "kind": "file",
+              "lines": 13,
+              "violations": {
+                "total": 3,
+                "complexity": 1,
+                "methods": 0,
+                "lines": 1,
+                "declarations": 1
+              },
+              "detail": {
+                "complexity": [
+                  {
+                    "name": "classify",
+                    "value": 3
+                  }
+                ],
+                "methods": [],
+                "lines": 13,
+                "declarations": 2
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": []
+}

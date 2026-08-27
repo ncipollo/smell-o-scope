@@ -9,6 +9,8 @@ version = "0.1.0"
 
 [dependencies]
 clap = { version = "4.6.6", features = ["derive"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
 smell = "0.5.0"
 
 [lints.clippy]
@@ -17,3 +19,4 @@ too_many_lines = "warn"
 too_many_arguments = "warn"
 
 [dev-dependencies]
+insta = "1.48.0"

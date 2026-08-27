@@ -1,8 +1,7 @@
 //! Placeholder rendering of a [`TreeAnalysis`], its [`CheckResult`]s, and
-//! their [`AggregatedTree`]. Stands in for the real JSON/HTML documents,
-//! which land in a later issue; `--format` currently only picks the
-//! destination (see [`crate::feature::scope::output`]), not the document
-//! shape.
+//! their [`AggregatedTree`]. Stands in for the real HTML document, which
+//! lands in a later issue (#4-6); `--format json` now renders the real
+//! document (see [`crate::render::json`]).
 
 use smell::{CheckFailure, CheckResult, FileNode, FileReport, Subject, TreeAnalysis, TreeNode};
 
