@@ -29,13 +29,24 @@ Flags will mirror `smell`'s analysis flags (`--include`, `--exclude`,
 embedded data, CSS, and JS, opening from `file://` with zero network
 requests. No server, no CDN, no sidecar assets to lose track of.
 
-The directory view is a collapsible tree of folders and files: roots start
-expanded, everything below starts collapsed. Each row carries a badge per
-configured measure, heat-scaled by violation count; expanding a file reveals
-its offender detail. With no `--max-*` limit configured (and none in
-`smell.toml`), there's nothing to flag — the tree still renders, just without
-violation badges. The color theme follows the OS light/dark setting
-automatically.
+A mode toggle switches between two views:
+
+- **Directory** — a collapsible tree of folders and files: roots start
+  expanded, everything below starts collapsed. Each row carries a badge per
+  configured measure, heat-scaled by violation count; expanding a file
+  reveals its offender detail.
+- **Heat map** — a hand-rolled squarified treemap: cells sized by line
+  count, colored by violation count on a scale that's renormalized at every
+  zoom level (so the hottest cell at any depth reads as hot, not just the
+  hottest cell document-wide). Click a folder cell to drill in, use the
+  breadcrumb to back out; click a file cell for its offender detail. A
+  legend shows the current level's count ranges; files that were never
+  analyzed render with a dashed border, distinct from a clean file.
+
+With no `--max-*` limit configured (and none in `smell.toml`), there's
+nothing to flag — both views still render, just without violation badges or
+color (the heat map becomes a plain file-size map). The color theme follows
+the OS light/dark setting automatically.
 
 ## JSON output
 

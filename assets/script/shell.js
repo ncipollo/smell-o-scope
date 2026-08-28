@@ -1,77 +1,4 @@
-(function () {
-  "use strict";
-
-  const doc = JSON.parse(document.getElementById("smell-data").textContent);
-  const maxTotal = computeMaxTotal(doc);
-  const app = document.getElementById("app");
-
-  app.appendChild(renderHeader(doc));
-  if (doc.errors.length > 0) {
-    app.appendChild(renderErrors(doc.errors));
-  }
-  app.appendChild(renderTree(doc));
-
-  function computeMaxTotal(document_) {
-    let max = 0;
-    walk(document_.roots);
-    return max;
-
-    function walk(nodes) {
-      for (const node of nodes) {
-        max = Math.max(max, node.violations.total);
-        if (node.kind === "directory") {
-          walk(node.children);
-        }
-      }
-    }
-  }
-
-  function heatLevel(count) {
-    if (count <= 0) {
-      return 0;
-    }
-    if (maxTotal <= 0) {
-      return 1;
-    }
-    const ratio = count / maxTotal;
-    if (ratio > 0.75) {
-      return 4;
-    }
-    if (ratio > 0.5) {
-      return 3;
-    }
-    if (ratio > 0.25) {
-      return 2;
-    }
-    return 1;
-  }
-
-  function label(measure) {
-    return measure.charAt(0).toUpperCase() + measure.slice(1);
-  }
-
-  function renderBadges(breakdown, measures) {
-    const wrap = document.createElement("span");
-    wrap.className = "node__badges";
-    wrap.appendChild(badge("total", breakdown.total));
-    for (const measure of measures) {
-      wrap.appendChild(badge(measure, breakdown[measure]));
-    }
-    return wrap;
-  }
-
-  function badge(measure, count) {
-    const el = document.createElement("span");
-    el.className = "badge";
-    el.dataset.level = String(heatLevel(count));
-    const value = document.createElement("span");
-    value.textContent = String(count);
-    const name = document.createElement("span");
-    name.className = "badge__label";
-    name.textContent = label(measure);
-    el.append(value, name);
-    return el;
-  }
+  // ---- header / errors ----
 
   function renderHeader(document_) {
     const header = document.createElement("div");
@@ -115,13 +42,66 @@
     return box;
   }
 
-  function renderTree(document_) {
-    if (document_.roots.length === 0) {
-      const empty = document.createElement("p");
-      empty.className = "empty";
-      empty.textContent = "no files analyzed";
-      return empty;
+  // ---- mode toggle ----
+
+  function renderModes() {
+    const wrap = document.createElement("div");
+    wrap.className = "modes";
+    wrap.setAttribute("role", "group");
+    wrap.setAttribute("aria-label", "display mode");
+    modeButtons = [modeButton("directory", "Directory"), modeButton("heatmap", "Heat map")];
+    wrap.append(modeButtons[0], modeButtons[1]);
+    return wrap;
+  }
+
+  function modeButton(mode, text) {
+    const button = document.createElement("button");
+    button.className = "modes__button";
+    button.dataset.mode = mode;
+    button.textContent = text;
+    button.addEventListener("click", () => showMode(mode));
+    return button;
+  }
+
+  function showMode(mode) {
+    state.mode = mode;
+    tooltip.hide();
+    if (!views[mode]) {
+      views[mode] = mode === "directory" ? renderTree(doc) : renderHeatmap();
     }
+    viewHost.replaceChildren(views[mode]);
+    updateModeButtons();
+    if (mode === "heatmap") {
+      layoutHeatmap();
+    }
+  }
+
+  function updateModeButtons() {
+    for (const button of modeButtons) {
+      button.setAttribute("aria-pressed", String(button.dataset.mode === state.mode));
+    }
+  }
+
+  function onKeydown(event) {
+    if (event.key === "Escape") {
+      tooltip.hide();
+    }
+  }
+
+  function scheduleLayout() {
+    if (state.mode !== "heatmap" || resizePending) {
+      return;
+    }
+    resizePending = true;
+    window.requestAnimationFrame(function () {
+      resizePending = false;
+      layoutHeatmap();
+    });
+  }
+
+  // ---- directory view ----
+
+  function renderTree(document_) {
     const list = document.createElement("ul");
     list.className = "tree";
     for (const root of document_.roots) {
@@ -205,50 +185,3 @@
     row.setAttribute("aria-expanded", String(nowExpanded));
   }
 
-  function renderFileDetail(node, measures) {
-    const detail = document.createElement("div");
-    detail.className = "file__detail";
-
-    if (node.lines === null) {
-      detail.appendChild(detailNote("not analyzed"));
-      return detail;
-    }
-
-    let any = false;
-    for (const measure of measures) {
-      const value = node.detail[measure];
-      if (Array.isArray(value)) {
-        for (const offender of value) {
-          any = true;
-          detail.appendChild(detailRow(label(measure) + " · " + offender.name, offender.value));
-        }
-      } else if (value !== null) {
-        any = true;
-        detail.appendChild(detailRow(label(measure), value));
-      }
-    }
-    if (!any) {
-      detail.appendChild(detailNote("no violations"));
-    }
-    return detail;
-  }
-
-  function detailRow(name, value) {
-    const row = document.createElement("div");
-    row.className = "file__detail-row";
-    const nameEl = document.createElement("span");
-    nameEl.className = "file__detail-name";
-    nameEl.textContent = name;
-    const valueEl = document.createElement("span");
-    valueEl.textContent = String(value);
-    row.append(nameEl, valueEl);
-    return row;
-  }
-
-  function detailNote(text) {
-    const note = document.createElement("div");
-    note.className = "file__detail-row file__detail-empty";
-    note.textContent = text;
-    return note;
-  }
-})();

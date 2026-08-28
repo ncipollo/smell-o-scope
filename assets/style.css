@@ -101,22 +101,30 @@ body {
   white-space: nowrap;
 }
 
-.badge[data-level="1"] {
+.badge[data-level="1"],
+.cell[data-level="1"],
+.legend__swatch[data-level="1"] {
   background: var(--heat-1);
   color: var(--heat-0-text);
 }
 
-.badge[data-level="2"] {
+.badge[data-level="2"],
+.cell[data-level="2"],
+.legend__swatch[data-level="2"] {
   background: var(--heat-2);
   color: var(--heat-0-text);
 }
 
-.badge[data-level="3"] {
+.badge[data-level="3"],
+.cell[data-level="3"],
+.legend__swatch[data-level="3"] {
   background: var(--heat-3);
   color: var(--heat-4-text);
 }
 
-.badge[data-level="4"] {
+.badge[data-level="4"],
+.cell[data-level="4"],
+.legend__swatch[data-level="4"] {
   background: var(--heat-4);
   color: var(--heat-4-text);
 }
@@ -240,4 +248,202 @@ body {
 .empty {
   color: var(--text-muted);
   padding: 1rem 0;
+}
+
+.modes {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.modes__button {
+  padding: 0.3rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.modes__button:hover {
+  background: var(--surface-raised);
+}
+
+.modes__button[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--surface-raised);
+}
+
+.view {
+  min-width: 0;
+}
+
+.heatmap__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.crumbs {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+}
+
+.crumbs__item {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: inherit;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.crumbs__item--current {
+  color: var(--text);
+  font-weight: 600;
+  cursor: default;
+}
+
+.crumbs__sep {
+  color: var(--text-muted);
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.legend__caption {
+  font-weight: 600;
+}
+
+.legend__scale {
+  display: inline-flex;
+  gap: 0.15rem;
+}
+
+.legend__swatch {
+  width: 1.1rem;
+  height: 0.7rem;
+  border-radius: 2px;
+  background: var(--heat-0);
+}
+
+.legend__swatch[data-state="unanalyzed"] {
+  background: var(--heat-0);
+  border: 1px dashed var(--border);
+}
+
+.legend__note {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.heatmap__canvas {
+  position: relative;
+  aspect-ratio: 8 / 5;
+  min-height: 320px;
+  max-height: 720px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--surface-raised);
+}
+
+.cell {
+  position: absolute;
+  overflow: hidden;
+  box-sizing: border-box;
+  border: 1px solid var(--surface);
+  background: var(--heat-0);
+  color: var(--heat-0-text);
+}
+
+.cell--directory {
+  font-weight: 600;
+}
+
+.cell--directory,
+.cell--file {
+  cursor: pointer;
+}
+
+.cell[data-state="unanalyzed"] {
+  background: var(--heat-0);
+  border-style: dashed;
+  border-color: var(--border);
+  color: var(--text-muted);
+}
+
+.cell--selected,
+.cell:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.cell__label {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.15rem 0.3rem;
+  font-size: 0.75rem;
+}
+
+.cell__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cell__count {
+  opacity: 0.8;
+}
+
+.heatmap__detail {
+  margin-top: 0.75rem;
+}
+
+.heatmap__detail-heading {
+  font-weight: 600;
+  margin: 0 0 0.25rem;
+}
+
+.tooltip {
+  position: fixed;
+  z-index: 10;
+  pointer-events: none;
+  max-width: 22rem;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+
+.tooltip__path {
+  font-weight: 600;
+  word-break: break-all;
+  margin: 0 0 0.25rem;
+}
+
+.tooltip__meta,
+.tooltip__hint {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  margin: 0;
+}
+
+.tooltip__rows {
+  margin: 0.35rem 0;
 }

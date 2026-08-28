@@ -1,8 +1,10 @@
 //! `--format html` rendering: a single self-contained document — embedded
 //! data, CSS, and JS, opening from `file://` with zero network requests.
-//! This issue lands the directory view; later issues (#5 heatmap, #6
-//! search) add more views to the same shell, all built by `app.js` from the
-//! same embedded document.
+//! The script is one shared closure split across `assets/script/*.js` for
+//! file-size reasons; [`script`] reassembles it before embedding. Together
+//! these build both display modes (a directory tree and a heatmap
+//! treemap, switchable via a toggle) from the same embedded document; a
+//! later issue (#6 search) adds a third way to navigate the same data.
 
 pub mod data;
 
@@ -11,7 +13,10 @@ use crate::render::json;
 
 const TEMPLATE: &str = include_str!("../../assets/template.html");
 const STYLE: &str = include_str!("../../assets/style.css");
-const SCRIPT: &str = include_str!("../../assets/app.js");
+const SCRIPT_SHARED: &str = include_str!("../../assets/script/shared.js");
+const SCRIPT_SHELL: &str = include_str!("../../assets/script/shell.js");
+const SCRIPT_HEATMAP: &str = include_str!("../../assets/script/heatmap.js");
+const SCRIPT_TOOLTIP: &str = include_str!("../../assets/script/tooltip.js");
 
 /// Renders `scan` as the self-contained HTML document: `TEMPLATE` with its
 /// style, script, and data placeholders filled in. Data is substituted
@@ -20,8 +25,16 @@ const SCRIPT: &str = include_str!("../../assets/app.js");
 /// lands as inert data rather than expanding into a second script body.
 pub fn render(scan: &Scan) -> String {
     let document = TEMPLATE.replacen("{{style}}", STYLE, 1);
-    let document = document.replacen("{{script}}", SCRIPT, 1);
+    let document = document.replacen("{{script}}", &script(), 1);
     document.replacen("{{data}}", &data::escape(&json::render_compact(scan)), 1)
+}
+
+/// Reassembles the one JS closure split across `assets/script/*.js`, in the
+/// same order the original single file had them in — every function inside
+/// is hoisted within the shared IIFE regardless of which part it came from,
+/// so this reproduces that file's behavior exactly.
+fn script() -> String {
+    [SCRIPT_SHARED, SCRIPT_SHELL, SCRIPT_HEATMAP, SCRIPT_TOOLTIP].join("\n")
 }
 
 #[cfg(test)]
@@ -132,12 +145,13 @@ mod tests {
             roots: vec![aggregated_file("{{script}}.rs", None, counts(&[]), vec![])],
         };
         let html = render(&scan(&tree, &[]));
-        assert_eq!(html.matches("(function").count(), 1);
+        assert_eq!(html.matches("<script>").count(), 1);
         assert!(extract_data(&html).contains("{{script}}.rs"));
     }
 
     #[test]
     fn script_never_writes_markup_directly() {
+        let script = script();
         for needle in [
             "innerHTML",
             "outerHTML",
@@ -145,7 +159,7 @@ mod tests {
             "document.write",
         ] {
             assert!(
-                !SCRIPT.contains(needle),
+                !script.contains(needle),
                 "app.js must build the DOM via textContent/createElement, found {needle}"
             );
         }
