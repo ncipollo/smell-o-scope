@@ -6,12 +6,23 @@
   const doc = JSON.parse(document.getElementById("smell-data").textContent);
   const maxTotal = computeMaxTotal(doc);
   const sizes = computeSizes(doc);
+  const pathIndex = buildPathIndex(doc);
+  const treeItems = new WeakMap();
   const app = document.getElementById("app");
   const viewHost = document.createElement("div");
   viewHost.className = "view";
   const views = { directory: null, heatmap: null };
   const state = { mode: "directory" };
   const heat = { path: [], selected: null, canvas: null, crumbs: null, legend: null, detail: null };
+  const search = {
+    input: null,
+    clear: null,
+    status: null,
+    results: null,
+    matches: [],
+    active: -1,
+    target: null,
+  };
   const tooltip = createTooltip();
   let modeButtons = [];
   let resizePending = false;
@@ -27,6 +38,7 @@
       app.appendChild(emptyState("no files analyzed"));
       return;
     }
+    app.appendChild(renderSearch());
     app.appendChild(renderModes());
     app.appendChild(viewHost);
     document.body.appendChild(tooltip.element);

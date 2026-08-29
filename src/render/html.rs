@@ -2,9 +2,9 @@
 //! data, CSS, and JS, opening from `file://` with zero network requests.
 //! The script is one shared closure split across `assets/script/*.js` for
 //! file-size reasons; [`script`] reassembles it before embedding. Together
-//! these build both display modes (a directory tree and a heatmap
-//! treemap, switchable via a toggle) from the same embedded document; a
-//! later issue (#6 search) adds a third way to navigate the same data.
+//! these build three ways to navigate the same embedded document: a
+//! directory tree, a heatmap treemap (switchable via a toggle), and a
+//! search box that jumps to a node in whichever view is active.
 
 pub mod data;
 
@@ -16,6 +16,7 @@ const STYLE: &str = include_str!("../../assets/style.css");
 const SCRIPT_SHARED: &str = include_str!("../../assets/script/shared.js");
 const SCRIPT_SHELL: &str = include_str!("../../assets/script/shell.js");
 const SCRIPT_HEATMAP: &str = include_str!("../../assets/script/heatmap.js");
+const SCRIPT_SEARCH: &str = include_str!("../../assets/script/search.js");
 const SCRIPT_TOOLTIP: &str = include_str!("../../assets/script/tooltip.js");
 
 /// Renders `scan` as the self-contained HTML document: `TEMPLATE` with its
@@ -34,7 +35,14 @@ pub fn render(scan: &Scan) -> String {
 /// is hoisted within the shared IIFE regardless of which part it came from,
 /// so this reproduces that file's behavior exactly.
 fn script() -> String {
-    [SCRIPT_SHARED, SCRIPT_SHELL, SCRIPT_HEATMAP, SCRIPT_TOOLTIP].join("\n")
+    [
+        SCRIPT_SHARED,
+        SCRIPT_SHELL,
+        SCRIPT_HEATMAP,
+        SCRIPT_SEARCH,
+        SCRIPT_TOOLTIP,
+    ]
+    .join("\n")
 }
 
 #[cfg(test)]
@@ -163,6 +171,40 @@ mod tests {
                 "app.js must build the DOM via textContent/createElement, found {needle}"
             );
         }
+    }
+
+    #[test]
+    fn script_is_one_closed_iife() {
+        let script = script();
+        assert!(script.trim_start().starts_with("(function ()"));
+        assert!(script.trim_end().ends_with("})();"));
+    }
+
+    #[test]
+    fn script_assembles_every_part() {
+        let script = script();
+        for part in [
+            SCRIPT_SHARED,
+            SCRIPT_SHELL,
+            SCRIPT_HEATMAP,
+            SCRIPT_SEARCH,
+            SCRIPT_TOOLTIP,
+        ] {
+            assert!(script.contains(part), "script part missing from the join");
+        }
+    }
+
+    #[test]
+    fn render_includes_a_labeled_search_input() {
+        let tree = AggregatedTree {
+            measures: measure_limits(&[]),
+            roots: vec![aggregated_file("a.rs", Some(1), counts(&[]), vec![])],
+        };
+        let html = render(&scan(&tree, &[]));
+        assert!(html.contains("smell-search"));
+        assert!(html.contains("Search files and folders"));
+        assert!(html.contains("combobox"));
+        assert!(html.contains("listbox"));
     }
 
     #[test]

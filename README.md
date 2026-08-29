@@ -43,6 +43,13 @@ A mode toggle switches between two views:
   legend shows the current level's count ranges; files that were never
   analyzed render with a dashed border, distinct from a clean file.
 
+A search box above the toggle matches any part of a file or folder's path,
+case-insensitively, and lists results with their violation counts. Picking a
+result — by click or with the arrow keys and Enter — jumps to it in whichever
+view is active: the directory tree expands its ancestors and highlights the
+row, the heat map drills to its level and outlines the cell. Clearing the
+search removes the highlight without undoing the navigation.
+
 With no `--max-*` limit configured (and none in `smell.toml`), there's
 nothing to flag — both views still render, just without violation badges or
 color (the heat map becomes a plain file-size map). The color theme follows
