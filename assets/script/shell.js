@@ -176,12 +176,17 @@
     }
 
     item.appendChild(row);
+    treeItems.set(node, { item: item, row: row });
     return item;
   }
 
+  function setExpanded(item, row, expanded) {
+    item.classList.toggle("node--expanded", expanded);
+    item.classList.toggle("node--collapsed", !expanded);
+    row.setAttribute("aria-expanded", String(expanded));
+  }
+
   function toggleNode(item, row) {
-    const nowExpanded = item.classList.toggle("node--expanded");
-    item.classList.toggle("node--collapsed", !nowExpanded);
-    row.setAttribute("aria-expanded", String(nowExpanded));
+    setExpanded(item, row, !item.classList.contains("node--expanded"));
   }
 

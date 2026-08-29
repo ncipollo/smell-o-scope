@@ -368,6 +368,9 @@
     if (heat.selected === node) {
       el.classList.add("cell--selected");
     }
+    if (search.target === node) {
+      el.classList.add("cell--found");
+    }
     positionCell(el, cell);
     el.appendChild(cellLabel(node, cell));
 
