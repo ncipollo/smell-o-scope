@@ -1,13 +1,14 @@
 # smell-o-scope
 
-Track down and visualize code smell. Recurses through a folder, analyzes it
-with [smell](https://github.com/ncipollo/smell), and renders a heat map of
-code smells per folder and file.
+If there are code smells anywhere in the universe, you can bet you won't be out of the loop!
+
+Track down and visualize code smells. Recurses through a folder, analyzes it
+with [smell](https://github.com/ncipollo/smell), and renders a heat map of code smells per folder and file.
 
 ## Install
 
 ```sh
-cargo install --git https://github.com/ncipollo/smell-o-scope
+cargo install smell-o-scope
 ```
 
 ## Usage
@@ -15,77 +16,86 @@ cargo install --git https://github.com/ncipollo/smell-o-scope
 ```sh
 smell-o-scope src/ --format html --output report.html # heat map of src/, saved as html
 smell-o-scope src/ --format json                      # full traversal + aggregation as json
+smell-o-scope src/ --rule swift                        # use the "swift" rule from smell.toml instead of "default"
+smell-o-scope src/ --max-complexity 15 --max-methods 20 --max-lines 500 # override complexity thresholds
+
+smell-o-scope --help # For more info use 
 ```
 
 ## Configuration
 
-Flags will mirror `smell`'s analysis flags (`--include`, `--exclude`,
-`--max-complexity`, `--rule`, ...) and propagate down to it, including its
-`smell.toml` configuration.
+```toml
+[[rule]]
+name = "default"
+max_complexity = 10
+max_methods = 15
+
+[[rule]]
+name = "swift"
+include = ["*.swift"]
+max_complexity = 15
+```
+
+See the [smell README](https://github.com/ncipollo/smell#configuration) for
+the full set of rule fields and how `--rule` selects between them.
 
 ## HTML output
 
-`--format html` (the default) renders a single self-contained `.html` file —
-embedded data, CSS, and JS, opening from `file://` with zero network
-requests. No server, no CDN, no sidecar assets to lose track of.
+`--format html` (the default) renders a single self-contained `.html` file.
 
-A mode toggle switches between two views:
-
-- **Directory** — a collapsible tree of folders and files: roots start
-  expanded, everything below starts collapsed. Each row carries a badge per
-  configured measure, heat-scaled by violation count; expanding a file
-  reveals its offender detail.
-- **Heat map** — a hand-rolled squarified treemap: cells sized by line
-  count, colored by violation count on a scale that's renormalized at every
-  zoom level (so the hottest cell at any depth reads as hot, not just the
-  hottest cell document-wide). Click a folder cell to drill in, use the
-  breadcrumb to back out; click a file cell for its offender detail. A
-  legend shows the current level's count ranges; files that were never
-  analyzed render with a dashed border, distinct from a clean file.
-
-A search box above the toggle matches any part of a file or folder's path,
-case-insensitively, and lists results with their violation counts. Picking a
-result — by click or with the arrow keys and Enter — jumps to it in whichever
-view is active: the directory tree expands its ancestors and highlights the
-row, the heat map drills to its level and outlines the cell. Clearing the
-search removes the highlight without undoing the navigation.
-
-With no `--max-*` limit configured (and none in `smell.toml`), there's
-nothing to flag — both views still render, just without violation badges or
-color (the heat map becomes a plain file-size map). The color theme follows
-the OS light/dark setting automatically.
+This html page contains the follwoing viewing options:
+- **directory**: This mode shows a file tree, along with the aggregated violations for each file and folder.
+- **heatmap**: This mode shows your folder as a heatmap. Clicking a folder box will let you drill into it and see it's internal heat map (and so on).
 
 ## JSON output
 
-`--format json` renders a single self-contained document: the traversal
-structure, the aggregated violation counts, and per-file offender detail —
-everything needed to render results without re-running analysis. It's also
-the payload the HTML output embeds.
+`--format json` renders a json which is suitable for custom use cases built on top of smell-o-scope.
 
 ```jsonc
 {
-  "version": 1,                 // schema version; bumped on breaking changes
-  "tool": { "name": "smell-o-scope", "version": "0.1.0" },
+  // schema version; bumped on breaking changes
+  "version": 1,
+  "tool": {
+    "name": "smell-o-scope",
+    "version": "0.1.0"
+  },
   "aggregation": "violations",
-  "options": { "rule": "default", "include": [], "exclude": [ /* ... */ ],
-               "branches": [], "implements": [],
-               "maxComplexity": 10, "maxMethods": null, "maxLines": null, "maxDeclarations": null },
-  "measures": ["complexity"],   // only measures with a configured limit
-  "totals": { "total": 7, "complexity": 7 },
+  "options": {
+    "rule": "default",
+    "maxComplexity": 10
+  },
+  // only measures with a configured limit
+  "measures": ["complexity"],
+  "totals": {
+    "total": 7,
+    "complexity": 7
+  },
   "roots": [
-    { "name": "src", "path": "/abs/src", "kind": "directory",
-      "violations": { "total": 7, "complexity": 7 },
+    {
+      "name": "src",
+      "path": "/abs/src",
+      "kind": "directory",
+      "violations": {
+        "total": 7,
+        "complexity": 7
+      },
       "children": [
-        { "name": "main.rs", "path": "/abs/src/main.rs", "kind": "file", "lines": 120,
-          "violations": { "total": 1, "complexity": 1 },
-          "detail": { "complexity": [ { "name": "run", "value": 22 } ] } }
-      ] }
+        {
+          "name": "main.rs",
+          "path": "/abs/src/main.rs",
+          "kind": "file",
+          "lines": 120,
+          "violations": {
+            "total": 1,
+            "complexity": 1
+          },
+          "detail": {
+            "complexity": [{ "name": "run", "value": 22 }]
+          }
+        }
+      ]
+    }
   ],
-  "errors": [ { "path": "…", "message": "…" } ]
+  "errors": []
 }
 ```
-
-`version: 1` is a contract other tools can build against: `measures`,
-`totals`, each node's `violations`, and each file's `detail` only ever list
-measures that had a configured limit for that run; roots and their children
-are sorted by path so the same scan always produces the same document.
