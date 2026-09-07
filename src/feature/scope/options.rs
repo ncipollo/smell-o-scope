@@ -24,6 +24,8 @@ pub fn overrides(request: &Request) -> Overrides {
         max_methods: request.max_methods,
         max_lines: request.max_lines,
         max_declarations: request.max_declarations,
+        max_comment_lines: request.max_comment_lines,
+        max_comments: request.max_comments,
         rule: request.rule.clone(),
     }
 }
@@ -68,6 +70,8 @@ pub struct Settings {
     pub max_methods: Option<usize>,
     pub max_lines: Option<usize>,
     pub max_declarations: Option<usize>,
+    pub max_comment_lines: Option<usize>,
+    pub max_comments: Option<usize>,
 }
 
 /// Builds the [`Settings`] echo from the `Overrides` a run sent to `smell`
@@ -86,6 +90,8 @@ pub fn settings(overrides: &Overrides, options: &AnalysisOptions) -> Settings {
         max_methods: options.max_methods,
         max_lines: options.max_lines,
         max_declarations: options.max_declarations,
+        max_comment_lines: options.max_comment_lines,
+        max_comments: options.max_comments,
     }
 }
 
@@ -103,6 +109,8 @@ mod tests {
             max_methods: Some(8),
             max_lines: Some(300),
             max_declarations: Some(5),
+            max_comment_lines: Some(40),
+            max_comments: Some(25),
             rule: Some("swift".to_string()),
             ..Request::default()
         }
@@ -133,6 +141,8 @@ mod tests {
         assert_eq!(overrides.max_methods, Some(8));
         assert_eq!(overrides.max_lines, Some(300));
         assert_eq!(overrides.max_declarations, Some(5));
+        assert_eq!(overrides.max_comment_lines, Some(40));
+        assert_eq!(overrides.max_comments, Some(25));
     }
 
     #[test]
@@ -150,6 +160,8 @@ mod tests {
         assert_eq!(overrides.max_methods, None);
         assert_eq!(overrides.max_lines, None);
         assert_eq!(overrides.max_declarations, None);
+        assert_eq!(overrides.max_comment_lines, None);
+        assert_eq!(overrides.max_comments, None);
         assert_eq!(overrides.rule, None);
     }
 
@@ -241,6 +253,8 @@ mod tests {
             max_methods: Some(2),
             max_lines: Some(3),
             max_declarations: None,
+            max_comment_lines: Some(4),
+            max_comments: None,
             ..AnalysisOptions::default()
         };
         let settings = settings(&overrides, &options);
@@ -248,5 +262,7 @@ mod tests {
         assert_eq!(settings.max_methods, Some(2));
         assert_eq!(settings.max_lines, Some(3));
         assert_eq!(settings.max_declarations, None);
+        assert_eq!(settings.max_comment_lines, Some(4));
+        assert_eq!(settings.max_comments, None);
     }
 }

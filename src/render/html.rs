@@ -65,6 +65,8 @@ mod tests {
             max_methods: None,
             max_lines: None,
             max_declarations: None,
+            max_comment_lines: None,
+            max_comments: None,
         }
     }
 
