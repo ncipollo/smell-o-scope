@@ -576,9 +576,9 @@ checksum = "8ed6a63f02c8539c91a8685a86f4099661ba3da017932f6ebbea6de3f0fa7c90"
 
 [[package]]
 name = "smell"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c4eda9409db062694d31dae1c54f923c42f78acd85e8e70f98ed3faff78e7d88"
+checksum = "ab0dc61d13eda832058c1345f00eed0e3ef15ddd9e8ce585c571c742fee31753"
 dependencies = [
  "clap",
  "comfy-table",

@@ -17,7 +17,7 @@ cargo install smell-o-scope
 smell-o-scope src/ --format html --output report.html # heat map of src/, saved as html
 smell-o-scope src/ --format json                      # full traversal + aggregation as json
 smell-o-scope src/ --rule swift                        # use the "swift" rule from smell.toml instead of "default"
-smell-o-scope src/ --max-complexity 15 --max-methods 20 --max-lines 500 # override complexity thresholds
+smell-o-scope src/ --max-complexity 15 --max-methods 20 --max-lines 500 --max-comments 20 --max-comment-lines 10 # override complexity thresholds
 
 smell-o-scope --help # For more info use 
 ```

@@ -167,9 +167,11 @@ mod tests {
         let entries = detail(&Subject::Entries(vec![]));
         assert_eq!(entries.shape(), tree::shape(Measure::Complexity));
         assert_eq!(entries.shape(), tree::shape(Measure::Methods));
+        assert_eq!(entries.shape(), tree::shape(Measure::CommentLines));
 
         let whole = detail(&Subject::File(0));
         assert_eq!(whole.shape(), tree::shape(Measure::Lines));
         assert_eq!(whole.shape(), tree::shape(Measure::Declarations));
+        assert_eq!(whole.shape(), tree::shape(Measure::Comments));
     }
 }

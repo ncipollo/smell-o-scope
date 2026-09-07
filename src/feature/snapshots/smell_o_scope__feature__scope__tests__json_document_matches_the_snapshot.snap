@@ -1,6 +1,6 @@
 ---
 source: src/feature/scope.rs
-assertion_line: 233
+assertion_line: 222
 expression: normalized
 ---
 {
@@ -25,7 +25,9 @@ expression: normalized
     "maxComplexity": 1,
     "maxMethods": 1,
     "maxLines": 5,
-    "maxDeclarations": 1
+    "maxDeclarations": 1,
+    "maxCommentLines": null,
+    "maxComments": null
   },
   "measures": [
     "complexity",

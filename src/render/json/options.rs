@@ -18,6 +18,8 @@ pub struct Options<'a> {
     pub max_methods: Option<usize>,
     pub max_lines: Option<usize>,
     pub max_declarations: Option<usize>,
+    pub max_comment_lines: Option<usize>,
+    pub max_comments: Option<usize>,
 }
 
 impl<'a> Options<'a> {
@@ -32,6 +34,8 @@ impl<'a> Options<'a> {
             max_methods: settings.max_methods,
             max_lines: settings.max_lines,
             max_declarations: settings.max_declarations,
+            max_comment_lines: settings.max_comment_lines,
+            max_comments: settings.max_comments,
         }
     }
 }
@@ -51,6 +55,8 @@ mod tests {
             max_methods: None,
             max_lines: Some(300),
             max_declarations: None,
+            max_comment_lines: Some(40),
+            max_comments: None,
         }
     }
 
@@ -59,6 +65,7 @@ mod tests {
         let value = serde_json::to_value(Options::new(&settings())).expect("serializes");
         assert!(value.get("maxComplexity").is_some());
         assert!(value.get("maxLines").is_some());
+        assert!(value.get("maxCommentLines").is_some());
         assert!(value.get("max_complexity").is_none());
     }
 
@@ -67,6 +74,7 @@ mod tests {
         let value = serde_json::to_value(Options::new(&settings())).expect("serializes");
         assert_eq!(value["maxMethods"], serde_json::Value::Null);
         assert_eq!(value["maxDeclarations"], serde_json::Value::Null);
+        assert_eq!(value["maxComments"], serde_json::Value::Null);
     }
 
     #[test]

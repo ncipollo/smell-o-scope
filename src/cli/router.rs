@@ -49,6 +49,14 @@ struct Cli {
     #[arg(long, value_name = "N")]
     max_declarations: Option<usize>,
 
+    /// Report comment runs whose line count exceeds this limit.
+    #[arg(long, value_name = "N")]
+    max_comment_lines: Option<usize>,
+
+    /// Report files whose comment count exceeds this limit.
+    #[arg(long, value_name = "N")]
+    max_comments: Option<usize>,
+
     /// Use the named rule from smell.toml instead of the "default" rule.
     #[arg(long, value_name = "NAME")]
     rule: Option<String>,
@@ -94,6 +102,8 @@ fn request(cli: Cli) -> Request {
         max_methods: cli.max_methods,
         max_lines: cli.max_lines,
         max_declarations: cli.max_declarations,
+        max_comment_lines: cli.max_comment_lines,
+        max_comments: cli.max_comments,
         rule: cli.rule,
         format: cli.format,
         output: cli.output,
@@ -178,12 +188,18 @@ mod tests {
             "300",
             "--max-declarations",
             "5",
+            "--max-comment-lines",
+            "40",
+            "--max-comments",
+            "25",
         ])
         .expect("limits parse");
         assert_eq!(cli.max_complexity, Some(10));
         assert_eq!(cli.max_methods, Some(8));
         assert_eq!(cli.max_lines, Some(300));
         assert_eq!(cli.max_declarations, Some(5));
+        assert_eq!(cli.max_comment_lines, Some(40));
+        assert_eq!(cli.max_comments, Some(25));
     }
 
     #[test]

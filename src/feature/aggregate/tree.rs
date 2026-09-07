@@ -14,21 +14,22 @@ use std::path::{Path, PathBuf};
 use smell::Measure;
 
 /// Every measure `smell` can check, in the order `smell::check` runs them.
-/// [`Counts`] is a fixed 4-slot array keyed by this list rather than a
-/// `HashMap<Measure, usize>`: `Measure` has no `Hash`/`Ord` impl, and there
-/// are only ever four of them.
-pub const MEASURES: [Measure; 4] = [
+/// [`Counts`] is a fixed-size array keyed by this list rather than a
+/// `HashMap<Measure, usize>`, since `Measure` has no `Hash`/`Ord` impl.
+pub const MEASURES: [Measure; 6] = [
     Measure::Complexity,
     Measure::Methods,
     Measure::Lines,
     Measure::Declarations,
+    Measure::CommentLines,
+    Measure::Comments,
 ];
 
 /// Per-measure violation counts for one node, plus their [`Counts::total`].
-/// [`slot`] is an exhaustive match on `Measure`, so a fifth `smell` measure
+/// [`slot`] is an exhaustive match on `Measure`, so a new `smell` measure
 /// fails this crate to compile rather than silently going uncounted.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub struct Counts([usize; 4]);
+pub struct Counts([usize; MEASURES.len()]);
 
 impl Counts {
     pub fn get(&self, measure: Measure) -> usize {
@@ -56,6 +57,8 @@ fn slot(measure: Measure) -> usize {
         Measure::Methods => 1,
         Measure::Lines => 2,
         Measure::Declarations => 3,
+        Measure::CommentLines => 4,
+        Measure::Comments => 5,
     }
 }
 
@@ -117,13 +120,13 @@ pub enum Shape {
     Whole,
 }
 
-/// The exhaustive match, mirroring [`slot`], so a fifth `smell` measure
-/// fails this crate to compile rather than silently getting the wrong
-/// detail shape.
+/// The exhaustive match, mirroring [`slot`], so a new `smell` measure fails
+/// this crate to compile rather than silently getting the wrong detail
+/// shape.
 pub fn shape(measure: Measure) -> Shape {
     match measure {
-        Measure::Complexity | Measure::Methods => Shape::Entries,
-        Measure::Lines | Measure::Declarations => Shape::Whole,
+        Measure::Complexity | Measure::Methods | Measure::CommentLines => Shape::Entries,
+        Measure::Lines | Measure::Declarations | Measure::Comments => Shape::Whole,
     }
 }
 
@@ -303,6 +306,8 @@ mod tests {
         assert_eq!(shape(Measure::Methods), Shape::Entries);
         assert_eq!(shape(Measure::Lines), Shape::Whole);
         assert_eq!(shape(Measure::Declarations), Shape::Whole);
+        assert_eq!(shape(Measure::CommentLines), Shape::Entries);
+        assert_eq!(shape(Measure::Comments), Shape::Whole);
     }
 
     #[test]

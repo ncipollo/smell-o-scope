@@ -15,6 +15,8 @@ pub struct Request {
     pub max_methods: Option<usize>,
     pub max_lines: Option<usize>,
     pub max_declarations: Option<usize>,
+    pub max_comment_lines: Option<usize>,
+    pub max_comments: Option<usize>,
     pub rule: Option<String>,
     pub format: Format,
     pub output: Option<PathBuf>,

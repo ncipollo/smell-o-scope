@@ -30,7 +30,7 @@ pub fn file_report(path: &str, lines: usize, complexity: usize) -> FileReport {
                 name: "top".to_string(),
                 complexity,
             }],
-            types: vec![],
+            ..FileComplexity::default()
         },
     }
 }
